@@ -46,12 +46,16 @@ The required data should be preprocessed to have the format needed for CNN train
            - outlier removal of extrme small/big densities
            - df_state24 = df_state24[(df_state24.pop_density_class >= 3) & (df_state24.pop_density_class <= 9)]
            - => state24_paths_density_labels_13k_Feb10.csv
-        - ###TODO: overlaps removal 
+        - Remove Overlaps 
+           - jupyter notebook -> Overlap-Solution.ipynb
+           - Fill in any required paths and then 'Cell' -> 'Run All'
            - => state24_paths_density_labels_13k_Feb26-NoOverlapDistrict.csv
         - create jpg path column in csv
            - => state24_jpgpaths_density_nolaps_12k_Mar6.csv
            - Then run jpg_convertion.py 
-        - ###TODO: add nightlight jpg path column
+        - Save Nightlight Images 
+           - jupyter notebook -> Nightlights.ipynb
+           - Fill in any required paths and then 'Cell' -> 'Run All'
            - => state24_jpgpaths_density_nolaps_12k_Mar8.csv
                         
   2. code/jpg_convertion.py (convert satellite TIF image to jpg format)
