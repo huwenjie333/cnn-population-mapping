@@ -1,0 +1,2 @@
+Downlaod DMSP/OLS nightlights (.tif) : https://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html
+Download Landscan (.tif) : https://earthworks.stanford.edu/?featured=geospatial_data&q=landscan
