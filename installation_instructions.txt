@@ -24,6 +24,3 @@ Set GDAL environment variables
 Activate the virtualenv, then install gdal
     pip install gdal==<GDAL VERSION>
     **version 1.11.3 didn’t work for me, so I used 1.11.2 instead
-
-
-
