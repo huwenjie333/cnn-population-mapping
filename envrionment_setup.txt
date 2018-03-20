@@ -1,0 +1,35 @@
+This project uses Gooogle Cloud Compute Engine following the instructions here:
+https://docs.google.com/document/d/1W6WJ9Hd1WIVjGFUHT9UsLcZ_X8yZc0SDi3DaB0e3qm8/edit?usp=sharing
+
+We used the Provided Disk Images with the following setups and softwares:
+
+ - Ubuntu 16.04 LTS, 40 GB disks
+ - Virtual environments for both Python 2.7 and Python 3.5. The environments are found at /home/dfd/env27/ and /home/dfd/env35/ respectively.
+    - gdal
+    - numpy
+    - scipy
+    - scikit-learn
+    - pandas
+    - matplotlib
+    - (CPU-only) tensorflow (r1.3)
+    - (GPU) tensorflow-gpu (r1.3)
+ - (GPU) CUDA Toolkit 8.0 and cuDNN v6
+
+To use the disks, you first need to create your own custom image using our file, and use this custom image as the boot disk for your new VM instance.
+
+In the sidebar, go to Compute Engine, then Images. Click on the blue CREATE IMAGE button at the top. Enter your preferred name in the Name field, such as “dfd-gpu-image”. Under Source, select Cloud Storage file.
+
+Under Cloud Storage file, enter one of the following:
+dfd-bucket/dfd_cpu_image.tar.gz (for the CPU-only instance)
+dfd-bucket/dfd_gpu_image.tar.gz (for the GPU instance)
+
+Click on the blue Create button. It will take several minutes for your image to be created (about 10-15 minutes in our experience).
+
+### Running Code on a VM Instance ###
+
+If you use our provided disk images, the VMs will already have a user named dfd. The virtual environments are located at /home/dfd/env27/ and /home/dfd/env35/ for Python 2.7 and Python 3.5, respectively.
+
+Activate the virtual environment for the version of Python you want to work with. For example
+source /home/dfd/env35/bin/activate
+
+

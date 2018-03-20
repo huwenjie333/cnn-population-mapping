@@ -1,0 +1,29 @@
+Python version: 3.5.2
+
+GDAL installation: 
+(also avaialbe in https://docs.google.com/document/d/1f8_FVJhl-JtaLR0t5mI6W803X3EtSsKxONJAQ-_Km9U/edit?usp=sharing)
+
+If you want to install GDAL yourself on a Linux machine, these are the DIY instructions:
+
+Install libgdal-dev (general GDAL) and gdal-bin (for the gdalinfo program)
+    sudo apt-get install libgdal-dev
+    sudo apt-get install gdal-bin
+
+Get the version of gdal
+    gdal-config --version
+    **For me, this showed 1.11.3
+
+Install the python-dev bindings
+    Python 2: sudo apt-get install python-dev
+    Python 3: sudo apt-get install python3-dev
+
+Set GDAL environment variables
+    export CPLUS_INCLUDE_PATH=/usr/include/gdal
+    export C_INCLUDE_PATH=/usr/include/gdal
+
+Activate the virtualenv, then install gdal
+    pip install gdal==<GDAL VERSION>
+    **version 1.11.3 didn’t work for me, so I used 1.11.2 instead
+
+
+
