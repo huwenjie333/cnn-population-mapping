@@ -3,10 +3,10 @@ import pandas as pd
 import re,os,time, math, gdal
 from PIL import Image
 
-df = pd.read_csv('/home/timhu/dfd-pop/data/annos_csv/state24_paths_density_labels_13k_Feb10.csv')
+df = pd.read_csv('/home/timhu/data/all_jpgpaths_clean_538k_May14.csv')
 
-TIF_DIR = '/home/timhu/all_tif'
-JPG_DIR = '/home/timhu/all_jpg'
+TIF_DIR = '/home/timhu/data/all_tif'
+JPG_DIR = '/home/timhu/data/all_jpg'
 
 Wl8 = Hl8 = 150 # Landsat 30m resolution per pixel
 Ws1 = Hs1 = 450 # Sentinel-1 10m resolution per pixel
