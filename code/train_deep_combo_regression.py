@@ -24,20 +24,20 @@ import data_input_jpg as dataset
 #################################### Traning Parameters for model tuning #################################################
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop07_vgg_Mar12'
-LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_deepcombo_test'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop06_vgg_Jul17'
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
                            lr_decay_rate = 1e-1, # exponential learning rate decay
                            weight_decay=5e-3, 
-                           dropout_keep= 0.7, 
+                           dropout_keep= 0.6, 
                            max_epoch = 40, # maximum number of epoch
                            batch_size= 48, 
                            output_size = 1) # class number = 1 for regression output
 
 # CNN architecture and weights
 MODEL = 'vgg' # VGG 16
-PRETRAIN_WEIGHTS = '/home/timhu/dfd-pop/weights/vgg_16.ckpt'
+PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
 # MODEL = 'resnet' # Resnet V1 152
 # PRETRAIN_WEIGHTS = '/home/timhu/dfd-pop/weights/resnet_v1_152.ckpt'
 
@@ -46,9 +46,9 @@ IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224 
 
 # input traning data
-ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_nolaps_12k_Mar6.csv'
-# ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_labels_13k_Feb25-NoOverlap.csv'
-JPG_DIR = '/home/timhu/all_jpg/'
+# ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_nolaps_12k_Mar6.csv'
+ANNOS_CSV = '/home/timhu/data/state24_jpgpaths_clean_17k_May17.csv'
+JPG_DIR = '/home/timhu/data/all_jpg/'
 DATA = 'l8s1' #l8, s1, l8s1, l8s1nl
 IMAGE_CHANNEL = 6 # 3,3,6,6
 
