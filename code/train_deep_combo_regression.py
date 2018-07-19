@@ -24,13 +24,13 @@ import data_input_jpg as dataset
 #################################### Traning Parameters for model tuning #################################################
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop07_vgg_Mar12'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop06_vgg_Jul17'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul18'
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
                            lr_decay_rate = 1e-1, # exponential learning rate decay
                            weight_decay=5e-3, 
-                           dropout_keep= 0.6, 
+                           dropout_keep= 0.8, 
                            max_epoch = 40, # maximum number of epoch
                            batch_size= 48, 
                            output_size = 1) # class number = 1 for regression output
