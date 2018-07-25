@@ -8,6 +8,7 @@ import os,sys,time,re
 import numpy as np
 import pandas as pd
 # np.set_printoptions(threshold=np.inf)
+sys.path.insert(0,'..')
 
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
