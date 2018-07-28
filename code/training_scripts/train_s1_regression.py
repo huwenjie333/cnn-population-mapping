@@ -13,9 +13,8 @@ sys.path.insert(0,'..')
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-# from tensorflow.contrib.slim.python.slim.nets import vgg
-# from tensorflow.contrib.slim.python.slim.nets import resnet_v1
-import vgg_shallow_combo as vgg
+from tensorflow.contrib.slim.python.slim.nets import vgg
+from tensorflow.contrib.slim.python.slim.nets import resnet_v1
 
 import tensorflow.contrib.slim as slim
 
@@ -24,13 +23,16 @@ import data_input_jpg as dataset
 
 #################################### Traning Parameters for model tuning #################################################
 # log directory to store trained checkpoints and tensorboard summary
-# LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1combo_state24_lr-6_drop08_vgg_Mar7'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_shallowcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul25'
+# LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_state24_lr-6_drop08_vgg_Mar7_test'
+# LOG_DIR = '/home/timhu/logs/regression_l8s1_inputcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul26'
+# LOG_DIR = '/home/timhu/logs/regression_l8_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul26'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_inputcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul27'
+
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
                            lr_decay_rate = 1e-1, # exponential learning rate decay 
-                           weight_decay=5e-3,
+                           weight_decay=5e-3, 
                            dropout_keep= 0.8, 
                            max_epoch = 40, # maximum number of epoch
                            batch_size= 48, 
@@ -50,9 +52,8 @@ IMAGE_WIDTH = 224
 ANNOS_CSV = '/home/timhu/data/state24_jpgpaths_clean_17k_May17.csv'
 # ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_labels_13k_Feb25-NoOverlap.csv'
 JPG_DIR = '/home/timhu/data/all_jpg/'
-DATA = 'l8s1' #l8, s1, l8s1, l8s1nl
-IMAGE_CHANNEL = 6 # 3,3,6,6
-
+DATA = 's1' # l8,s1,l8s1
+IMAGE_CHANNEL = 3 # 3 if l8 or s1,6 if l8+s1
 
 ################################# ### Traning script (no need to change) #################################################
 
@@ -82,6 +83,7 @@ def run_training():
     input_labels_val = df_annos.loc[df_annos.partition == 'val', 'pop_density_log2'].values
     input_id_train = df_annos.loc[df_annos.partition == 'train', 'village_id'].values
     input_id_val = df_annos.loc[df_annos.partition == 'val', 'village_id'].values
+ 
     
     print('input_files_train shape:', input_files_train.shape)
     train_set_size = len(input_labels_train)
@@ -96,9 +98,7 @@ def run_training():
                               IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL, regression=True, augmentation=False, normalization=True)
 
 
-    images_l8_placeholder = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 3]) 
-    images_s1_placeholder = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
-    vectors_nl_placeholder = tf.placeholder(tf.float32, shape=[None, 25])
+    images_placeholder = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL]) 
     labels_placeholder = tf.placeholder(tf.float32, shape=[None,])
     print('finish data input')
 
@@ -107,9 +107,9 @@ def run_training():
 
     # CNN forward reference
     if MODEL == 'vgg':
-         with slim.arg_scope(vgg.vgg_arg_scope(weight_decay=FLAGS.weight_decay)):
-            outputs, _ = vgg.vgg_16(images_l8_placeholder, images_s1_placeholder, num_classes=FLAGS.output_size, 
-                                       dropout_keep_prob=FLAGS.dropout_keep, is_training=True)
+        with slim.arg_scope(vgg.vgg_arg_scope(weight_decay=FLAGS.weight_decay)):
+            outputs, _ = vgg.vgg_16(images_placeholder, num_classes=FLAGS.output_size, 
+                                   dropout_keep_prob=FLAGS.dropout_keep, is_training=True)
             outputs = tf.squeeze(outputs) # change shape from (B,1) to (B,), same as label input
     if MODEL == 'resnet':
         with slim.arg_scope(resnet_v1.resnet_arg_scope()):
@@ -145,10 +145,12 @@ def run_training():
 
     # determine the model vairables to restore from pre-trained checkpoint
     if MODEL == 'vgg':
-        model_variables = slim.get_variables_to_restore(exclude=[
-            'vgg_16/fc8', 'vgg_16/conv1','vgg_16/fc7/dim_reduce','vgg_16/combine']) 
+        if DATA == 'l8s1':
+            model_variables = slim.get_variables_to_restore(exclude=['vgg_16/fc8', 'vgg_16/conv1']) 
+        else:
+            model_variables = slim.get_variables_to_restore(exclude=['vgg_16/fc8']) 
     if MODEL == 'resnet':
-        model_variables = slim.get_variables_to_restore(exclude=['resnet_v1_152/logits']) #, 'resnet_v1_152/conv1']) 
+        model_variables = slim.get_variables_to_restore(exclude=['resnet_v1_152/logits', 'resnet_v1_152/conv1']) 
 
 
     # training step and learning rate
@@ -175,61 +177,22 @@ def run_training():
     summary = tf.summary.merge_all()
     summary_writer_train = tf.summary.FileWriter(os.path.join(LOG_DIR, 'log_train'), sess.graph)
     summary_writer_val = tf.summary.FileWriter(os.path.join(LOG_DIR, 'log_val'), sess.graph)
-    
+
     # variable initialize
     init = tf.global_variables_initializer()
     sess.run(init)
 
-    ##### restore the model from pre-trained checkpoint for new VGG archtecture #####
-    
-    # restore the weights for the layers that are nor modified in the new arch (excep conv1, fc8)
+    # restore the model from pre-trained checkpoint
     restorer = tf.train.Saver(model_variables)
     restorer.restore(sess, PRETRAIN_WEIGHTS)
     print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-    
-    # a fake layer to hold the new variables to restore
-    with tf.variable_scope("vgg_16"): 
-        fake_net = slim.repeat(images_l8_placeholder, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-    
-    # print out the vairables in fake layer
-    dup_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/conv1')
-    print('duplicated weights to update: ')
-    for ww in dup_weights:
-        print(ww)
-    
-    # get the vairables for the fakes layer 
-    with tf.variable_scope("vgg_16/conv1", reuse=True):
-        weights1 = tf.get_variable("conv1_1/weights")
-        bias1 = tf.get_variable("conv1_1/biases")
-        weights2 = tf.get_variable("conv1_2/weights")
-        bias2 = tf.get_variable("conv1_2/biases")
-    
-    # restore the vairables of fake layer with checkpoint weights
-    restorer = tf.train.Saver([weights1, bias1, weights2, bias2])
-    restorer.restore(sess, PRETRAIN_WEIGHTS)
-    print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-    
-    # assign the weights of fake layer to true model vairables 
-    with tf.variable_scope("vgg_16", reuse=True):
-        assign_ops= [
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/weights"), weights1),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/weights"), weights1),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/weights"), weights2),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/weights"), weights2),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/biases"), bias1),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/biases"), bias1),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/biases"), bias2),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/biases"), bias2)]
-    
-    sess.run([assign_ops])
-    ###########################################################################
-    
+
     # saver object to save checkpoint during training
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
 
 
     print('start training...')
-    epoch = 0 
+    epoch = 0  
     best_r2 = -float('inf')
     for step in xrange(MAX_STEPS):
         if step % TRAIN_BATCHES_PER_EPOCH == 0:
@@ -244,10 +207,7 @@ def run_training():
         if step == 0:
             print("finished reading batch data")
             print("images_out shape:", images_out.shape)
-        feed_dict = {images_l8_placeholder: images_out[:,:,:,:3],
-                     images_s1_placeholder: images_out[:,:,:,3:],
-                     labels_placeholder: labels_out}
-        
+        feed_dict = {images_placeholder: images_out, labels_placeholder: labels_out}
         _, train_loss, train_accuracy, train_outputs, lr = \
             sess.run([train_op, loss_log2_mse, r2_log2, outputs, learning_rate], feed_dict=feed_dict)
 
@@ -262,9 +222,7 @@ def run_training():
 
         if step % 50 == 0 or (step + 1) == MAX_STEPS: # calculate and print validation loss every 50 batches 
             images_out, labels_out = sess.run([val_images_batch, val_labels_batch])
-            feed_dict = {images_l8_placeholder: images_out[:,:,:,:3],
-                         images_s1_placeholder: images_out[:,:,:,3:],
-                         labels_placeholder: labels_out}
+            feed_dict = {images_placeholder: images_out, labels_placeholder: labels_out}
 
             val_loss, val_accuracy = sess.run([loss_log2_mse, r2_log2], feed_dict=feed_dict)
             print('Step %d epoch %d: val log2 MSE = %.4f val log2 R2 = %.4f ' % (step, epoch, val_loss, val_accuracy))
@@ -279,6 +237,7 @@ def run_training():
                     best_r2 = val_accuracy
                     checkpoint_file = os.path.join(LOG_DIR, 'model.ckpt')
                     saver.save(sess, checkpoint_file, global_step=step, write_state=True)
+                
 
 #         # Save a checkpoint every 3 epoch
 #         if step % (TRAIN_BATCHES_PER_EPOCH * 3) == 0 or (step + 1) == MAX_STEPS:

@@ -52,8 +52,8 @@ IMAGE_WIDTH = 224
 ANNOS_CSV = '/home/timhu/data/state24_jpgpaths_clean_17k_May17.csv'
 # ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_labels_13k_Feb25-NoOverlap.csv'
 JPG_DIR = '/home/timhu/data/all_jpg/'
-DATA = 'l8s1' # l8,s1,l8s1
-IMAGE_CHANNEL = 6 # 3 if l8 or s1,6 if l8+s1
+DATA = 'l8' # l8,s1,l8s1
+IMAGE_CHANNEL = 3 # 3 if l8 or s1,6 if l8+s1
 
 ################################# ### Traning script (no need to change) #################################################
 

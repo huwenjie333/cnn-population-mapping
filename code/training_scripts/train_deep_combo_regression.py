@@ -252,7 +252,8 @@ def run_training():
 
 
     print('start training...')
-    epoch = 0                
+    epoch = 0
+    best_r2 = -float('inf')
     for step in xrange(MAX_STEPS):
         if step % TRAIN_BATCHES_PER_EPOCH == 0:
             epoch += 1
@@ -294,11 +295,18 @@ def run_training():
             summary_str = sess.run(summary, feed_dict=feed_dict)
             summary_writer_val.add_summary(summary_str, step)
             summary_writer_val.flush()
+            
+            # in each epoch, if the validation R2 is higher than best R2, save the checkpoint
+            if step % (TRAIN_BATCHES_PER_EPOCH - TRAIN_BATCHES_PER_EPOCH % 50) == 0:
+                if val_accuracy > best_r2:
+                    best_r2 = val_accuracy
+                    checkpoint_file = os.path.join(LOG_DIR, 'model.ckpt')
+                    saver.save(sess, checkpoint_file, global_step=step, write_state=True)
 
-        # Save a checkpoint every 3 epoch
-        if step % (TRAIN_BATCHES_PER_EPOCH * 3) == 0 or (step + 1) == MAX_STEPS:
-            checkpoint_file = os.path.join(LOG_DIR, 'model.ckpt')
-            saver.save(sess, checkpoint_file, global_step=step, write_state=True)
+#         # Save a checkpoint every 3 epoch
+#         if step % (TRAIN_BATCHES_PER_EPOCH * 3) == 0 or (step + 1) == MAX_STEPS:
+#             checkpoint_file = os.path.join(LOG_DIR, 'model.ckpt')
+#             saver.save(sess, checkpoint_file, global_step=step, write_state=True)
     
 if __name__ == '__main__':
     tf.app.run(main=main)
