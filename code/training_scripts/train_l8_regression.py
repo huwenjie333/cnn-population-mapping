@@ -22,11 +22,13 @@ import data_input_jpg as dataset
 
 
 #################################### Traning Parameters for model tuning #################################################
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_state24_lr-6_drop08_vgg_Mar7_test'
 # LOG_DIR = '/home/timhu/logs/regression_l8s1_inputcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul26'
 # LOG_DIR = '/home/timhu/logs/regression_l8_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul26'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_inputcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul27'
+LOG_DIR = '/home/timhu/logs/regression_l8_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28'
 
 
 # Basic model parameters as external flags.
@@ -49,9 +51,9 @@ IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224 
 
 # input traning data
-ANNOS_CSV = '/home/timhu/data/state24_jpgpaths_clean_17k_May17.csv'
+ANNOS_CSV = '/home/timhu/data/all_jpgpaths_clean_538k_May17.csv'  # state24_jpgpaths_clean_17k_May17.csv
 # ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_labels_13k_Feb25-NoOverlap.csv'
-JPG_DIR = '/home/timhu/data/all_jpg/'
+JPG_DIR = '/home/timhu/data/all_jpg/' 
 DATA = 'l8' # l8,s1,l8s1
 IMAGE_CHANNEL = 3 # 3 if l8 or s1,6 if l8+s1
 
@@ -65,7 +67,9 @@ def main(_):
         run_training()
 
 def run_training():
-    sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)) 
+    config = tf.ConfigProto(allow_soft_placement = True)
+    sess = tf.Session(config = config)
+#     sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)) 
     
     # create input path and labels np.array from csv annotations
     df_annos = pd.read_csv(ANNOS_CSV, index_col=0)
@@ -97,7 +101,6 @@ def run_training():
         dataset.input_batches(FLAGS.batch_size, FLAGS.output_size, input_files_val, input_labels_val, input_id_val,
                               IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL, regression=True, augmentation=False, normalization=True)
 
-
     images_placeholder = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL]) 
     labels_placeholder = tf.placeholder(tf.float32, shape=[None,])
     print('finish data input')
@@ -115,30 +118,30 @@ def run_training():
         with slim.arg_scope(resnet_v1.resnet_arg_scope()):
             outputs, _ = resnet_v1.resnet_v1_152(images_placeholder, num_classes=FLAGS.output_size, is_training=True)
             outputs = tf.squeeze(outputs) # change shape from (B,1) to (B,), same as label input
-  
+
 
     # loss
     labels_real = tf.pow(2.0, labels_placeholder) 
     outputs_real = tf.pow(2.0, outputs)
-    
+
     # only loss_log2_mse are used for gradient calculate, model minimize this value
     loss_log2_mse = tf.reduce_mean(tf.squared_difference(labels_placeholder, outputs), name='loss_log2_mse')   
     loss_real_rmse = tf.sqrt(tf.reduce_mean(tf.squared_difference(labels_real, outputs_real)), name='loss_real_rmse')
     loss_real_mae = tf.losses.absolute_difference(labels_real, outputs_real)
-    
+
     tf.summary.scalar('loss_log2_mse', loss_log2_mse) 
     tf.summary.scalar('loss_real_rmse', loss_real_rmse) 
     tf.summary.scalar('loss_real_mae', loss_real_mae)     
-    
+
     # accuracy (R2)
     def r_sqaured(labels, outputs):
         sst = tf.reduce_sum(tf.squared_difference(labels, tf.reduce_mean(labels)))
         sse = tf.reduce_sum(tf.squared_difference(labels, outputs))
         return (1.0 - tf.div(sse, sst))
-    
+
     r2_log2 = r_sqaured(labels_placeholder, outputs)
     r2_real = r_sqaured(labels_real, outputs_real)
-    
+
     tf.summary.scalar('r2_log2', r2_log2)
     tf.summary.scalar('r2_real', r2_real)
 

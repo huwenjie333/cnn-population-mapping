@@ -23,9 +23,11 @@ import data_input_jpg as dataset
 
 
 #################################### Traning Parameters for model tuning #################################################
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop07_vgg_Mar12'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop08_vgg_Jul18'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28'
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
@@ -48,7 +50,7 @@ IMAGE_WIDTH = 224
 
 # input traning data
 # ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_nolaps_12k_Mar6.csv'
-ANNOS_CSV = '/home/timhu/data/state24_jpgpaths_clean_17k_May17.csv'
+ANNOS_CSV = '/home/timhu/data/all_jpgpaths_clean_538k_May17.csv'  # state24_jpgpaths_clean_17k_May17.csv
 JPG_DIR = '/home/timhu/data/all_jpg/'
 DATA = 'l8s1' #l8, s1, l8s1, l8s1nl
 IMAGE_CHANNEL = 6 # 3,3,6,6
