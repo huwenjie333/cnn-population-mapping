@@ -108,11 +108,11 @@ def vgg_16(inputs_l8, inputs_s1, inputs_nl=None,
                         outputs_collections=end_points_collection):
       ####
       net_l8 = slim.repeat(inputs_l8, 2, slim.conv2d, 64, [3, 3], scope='conv1_l8')
-      net_l8 = slim.max_pool2d(net_l8, [2, 2], scope='pool1_l8')
+      net_l8 = slim.max_pool2d(net_l8, [2, 2], scope='pool1_l8') # shape 112x112x64
       net_s1 = slim.repeat(inputs_s1, 2, slim.conv2d, 64, [3, 3], scope='conv1_s1')
-      net_s1 = slim.max_pool2d(net_s1, [2, 2], scope='pool1_s1')
-      net = tf.stack([net_l8, net_s1])
-      net = tf.reduce_mean(net, axis=0)
+      net_s1 = slim.max_pool2d(net_s1, [2, 2], scope='pool1_s1') # shape 112x112x64
+      net = tf.concat([net_l8, net_s1], 3) # shape 112x112x128
+      net = slim.conv2d(net, 64, [1, 1], scope='combine') # shape 112x112x64
       ####
         
       net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
