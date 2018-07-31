@@ -27,20 +27,22 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1combo_state24_lr-6_drop08_vgg_Mar7'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_shallowcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_shallowcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul31'
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
                            lr_decay_rate = 1e-1, # exponential learning rate decay 
                            weight_decay=5e-3,
                            dropout_keep= 0.8, 
-                           max_epoch = 40, # maximum number of epoch
+                           max_epoch = 30, # maximum number of epoch
                            batch_size= 48, 
                            output_size = 1) # class number = 1 for regression output
 
 # CNN architecture and weights
 MODEL = 'vgg' # VGG 16
-PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
+RESUME = True
+# PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
+PRETRAIN_WEIGHTS = '/home/timhu/logs/regression_l8s1_shallowcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28/model.ckpt-76000'
 # MODEL = 'resnet' # Resnet V1 152
 # PRETRAIN_WEIGHTS = '/home/timhu/dfd-pop/weights/resnet_v1_152.ckpt'
 
@@ -48,7 +50,7 @@ PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
 IMAGE_HEIGHT = 224 
 IMAGE_WIDTH = 224 
 
-# input traning data
+# input traning data, ~7k per epoch with batch_size= 48
 ANNOS_CSV = '/home/timhu/data/all_jpgpaths_clean_538k_May17.csv'  # state24_jpgpaths_clean_17k_May17.csv
 # ANNOS_CSV = '/home/timhu/dfd-pop/data/annos_csv/state24_jpgpaths_density_labels_13k_Feb25-NoOverlap.csv'
 JPG_DIR = '/home/timhu/data/all_jpg/'
@@ -181,50 +183,55 @@ def run_training():
     # variable initialize
     init = tf.global_variables_initializer()
     sess.run(init)
+    
+    if RESUME:
+        restorer = tf.train.Saver()
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+    else:
+        ##### restore the model from pre-trained checkpoint for new VGG archtecture #####
 
-    ##### restore the model from pre-trained checkpoint for new VGG archtecture #####
-    
-    # restore the weights for the layers that are nor modified in the new arch (excep conv1, fc8)
-    restorer = tf.train.Saver(model_variables)
-    restorer.restore(sess, PRETRAIN_WEIGHTS)
-    print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-    
-    # a fake layer to hold the new variables to restore
-    with tf.variable_scope("vgg_16"): 
-        fake_net = slim.repeat(images_l8_placeholder, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-    
-    # print out the vairables in fake layer
-    dup_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/conv1')
-    print('duplicated weights to update: ')
-    for ww in dup_weights:
-        print(ww)
-    
-    # get the vairables for the fakes layer 
-    with tf.variable_scope("vgg_16/conv1", reuse=True):
-        weights1 = tf.get_variable("conv1_1/weights")
-        bias1 = tf.get_variable("conv1_1/biases")
-        weights2 = tf.get_variable("conv1_2/weights")
-        bias2 = tf.get_variable("conv1_2/biases")
-    
-    # restore the vairables of fake layer with checkpoint weights
-    restorer = tf.train.Saver([weights1, bias1, weights2, bias2])
-    restorer.restore(sess, PRETRAIN_WEIGHTS)
-    print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-    
-    # assign the weights of fake layer to true model vairables 
-    with tf.variable_scope("vgg_16", reuse=True):
-        assign_ops= [
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/weights"), weights1),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/weights"), weights1),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/weights"), weights2),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/weights"), weights2),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/biases"), bias1),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/biases"), bias1),
-        tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/biases"), bias2),
-        tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/biases"), bias2)]
-    
-    sess.run([assign_ops])
-    ###########################################################################
+        # restore the weights for the layers that are nor modified in the new arch (excep conv1, fc8)
+        restorer = tf.train.Saver(model_variables)
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+
+        # a fake layer to hold the new variables to restore
+        with tf.variable_scope("vgg_16"): 
+            fake_net = slim.repeat(images_l8_placeholder, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+
+        # print out the vairables in fake layer
+        dup_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/conv1')
+        print('duplicated weights to update: ')
+        for ww in dup_weights:
+            print(ww)
+
+        # get the vairables for the fakes layer 
+        with tf.variable_scope("vgg_16/conv1", reuse=True):
+            weights1 = tf.get_variable("conv1_1/weights")
+            bias1 = tf.get_variable("conv1_1/biases")
+            weights2 = tf.get_variable("conv1_2/weights")
+            bias2 = tf.get_variable("conv1_2/biases")
+
+        # restore the vairables of fake layer with checkpoint weights
+        restorer = tf.train.Saver([weights1, bias1, weights2, bias2])
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+
+        # assign the weights of fake layer to true model vairables 
+        with tf.variable_scope("vgg_16", reuse=True):
+            assign_ops= [
+            tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/weights"), weights1),
+            tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/weights"), weights1),
+            tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/weights"), weights2),
+            tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/weights"), weights2),
+            tf.assign(tf.get_variable("conv1_l8/conv1_l8_1/biases"), bias1),
+            tf.assign(tf.get_variable("conv1_s1/conv1_s1_1/biases"), bias1),
+            tf.assign(tf.get_variable("conv1_l8/conv1_l8_2/biases"), bias2),
+            tf.assign(tf.get_variable("conv1_s1/conv1_s1_2/biases"), bias2)]
+
+        sess.run([assign_ops])
+        ###########################################################################
     
     # saver object to save checkpoint during training
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)

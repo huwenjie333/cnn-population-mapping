@@ -27,20 +27,22 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # log directory to store trained checkpoints and tensorboard summary
 # LOG_DIR = '/home/timhu/dfd-pop/logs/regression_l8s1_deepcombo_state24_lr-5_decay-1_wd5e-3_drop07_vgg_Mar12'
-LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28'
+LOG_DIR = '/home/timhu/logs/regression_l8s1_deepcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul31'
 
 # Basic model parameters as external flags.
 FLAGS = argparse.Namespace(learning_rate= 1e-5,
                            lr_decay_rate = 1e-1, # exponential learning rate decay
                            weight_decay=5e-3, 
                            dropout_keep= 0.8, 
-                           max_epoch = 40, # maximum number of epoch
+                           max_epoch = 30, # maximum number of epoch
                            batch_size= 48, 
                            output_size = 1) # class number = 1 for regression output
 
 # CNN architecture and weights
 MODEL = 'vgg' # VGG 16
-PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
+RESUME = True
+PRETRAIN_WEIGHTS = '/home/timhu/logs/regression_l8s1_deepcombo_allstate_lr-5_decay-1_wd5e-3_drop08_vgg_Jul28/model.ckpt-60800'
+# PRETRAIN_WEIGHTS = '/home/timhu/weights/vgg_16.ckpt'
 # MODEL = 'resnet' # Resnet V1 152
 # PRETRAIN_WEIGHTS = '/home/timhu/dfd-pop/weights/resnet_v1_152.ckpt'
 
@@ -180,74 +182,79 @@ def run_training():
     # variable initialize
     init = tf.global_variables_initializer()
     sess.run(init)
+    
+    if RESUME:
+        restorer = tf.train.Saver()
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+    else:
+        ##### restore the model from pre-trained checkpoint for new VGG archtecture #####
 
-    ##### restore the model from pre-trained checkpoint for new VGG archtecture #####
-    
-    # restore the weights for the layers that are nor modified in the new arch (excep conv1, fc8)
-    restorer = tf.train.Saver(model_variables)
-    restorer.restore(sess, PRETRAIN_WEIGHTS)
-    print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-    for ww in model_variables:
-        print(ww)
-    
-    # a fake layer to hold the new variables to restore
-    with tf.variable_scope("vgg_16"): 
-        fake_net = slim.repeat(images_l8_placeholder, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-        fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool1')
-        fake_net = slim.repeat(fake_net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-        fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool2')
-        fake_net = slim.repeat(fake_net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-        fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool3')
-        fake_net = slim.repeat(fake_net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-        fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool4')
-        fake_net = slim.repeat(fake_net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-        fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool5')
-    
-    # print out the vairables in fake layer
-    dup_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/conv[1-5]/')
-    
-    # restore the vairables of fake layer with checkpoint weights
-    restorer = tf.train.Saver(dup_weights)
-    restorer.restore(sess, PRETRAIN_WEIGHTS)
-    var_list = []
-    print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
-#     print('restore duplicated weights to update: ')
-    for ww in dup_weights:
-        var_list.append(ww.name.replace('vgg_16/',''))
-#     for v in var_list:
-#         print(v)
-    
-#     # get the vairables for the fakes layer 
-#     with tf.variable_scope("vgg_16/conv1", reuse=True):
-#         weights1 = tf.get_variable("conv1_1/weights")
-#         bias1 = tf.get_variable("conv1_1/biases")
-#         weights2 = tf.get_variable("conv1_2/weights")
-#         bias2 = tf.get_variable("conv1_2/biases")
-    
-#     l8_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/l8/')
-#     print('new l8 weights to update: ')
-#     for ww in l8_weights:
-#         print(ww.name)
-        
-    assign_ops = []
-    # assign the weights of fake layer to true model vairables 
-    with tf.variable_scope("vgg_16", reuse=True):
-        for v in var_list:
-            v = v.replace(':0','')
-            with tf.variable_scope("l8", reuse=True):
-                new_var = tf.get_variable(v)
-            old_var = tf.get_variable(v)
-            assign_ops.append(tf.assign(new_var, old_var))
-            print(new_var.name, '<==', old_var.name)
-            with tf.variable_scope("s1", reuse=True):
-                new_var = tf.get_variable(v)
-            assign_ops.append(tf.assign(new_var, old_var))
-            print(new_var.name, '<==', old_var.name)
-            
+        # restore the weights for the layers that are nor modified in the new arch (excep conv1, fc8)
+        restorer = tf.train.Saver(model_variables)
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+        for ww in model_variables:
+            print(ww)
 
-    
-    sess.run([assign_ops])
-    ###########################################################################
+        # a fake layer to hold the new variables to restore
+        with tf.variable_scope("vgg_16"): 
+            fake_net = slim.repeat(images_l8_placeholder, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+            fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool1')
+            fake_net = slim.repeat(fake_net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+            fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool2')
+            fake_net = slim.repeat(fake_net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+            fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool3')
+            fake_net = slim.repeat(fake_net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+            fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool4')
+            fake_net = slim.repeat(fake_net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+            fake_net = slim.max_pool2d(fake_net, [2, 2], scope='pool5')
+
+        # print out the vairables in fake layer
+        dup_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/conv[1-5]/')
+
+        # restore the vairables of fake layer with checkpoint weights
+        restorer = tf.train.Saver(dup_weights)
+        restorer.restore(sess, PRETRAIN_WEIGHTS)
+        var_list = []
+        print('loaded pre-trained weights: ', PRETRAIN_WEIGHTS)
+    #     print('restore duplicated weights to update: ')
+        for ww in dup_weights:
+            var_list.append(ww.name.replace('vgg_16/',''))
+    #     for v in var_list:
+    #         print(v)
+
+    #     # get the vairables for the fakes layer 
+    #     with tf.variable_scope("vgg_16/conv1", reuse=True):
+    #         weights1 = tf.get_variable("conv1_1/weights")
+    #         bias1 = tf.get_variable("conv1_1/biases")
+    #         weights2 = tf.get_variable("conv1_2/weights")
+    #         bias2 = tf.get_variable("conv1_2/biases")
+
+    #     l8_weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'vgg_16/l8/')
+    #     print('new l8 weights to update: ')
+    #     for ww in l8_weights:
+    #         print(ww.name)
+
+        assign_ops = []
+        # assign the weights of fake layer to true model vairables 
+        with tf.variable_scope("vgg_16", reuse=True):
+            for v in var_list:
+                v = v.replace(':0','')
+                with tf.variable_scope("l8", reuse=True):
+                    new_var = tf.get_variable(v)
+                old_var = tf.get_variable(v)
+                assign_ops.append(tf.assign(new_var, old_var))
+                print(new_var.name, '<==', old_var.name)
+                with tf.variable_scope("s1", reuse=True):
+                    new_var = tf.get_variable(v)
+                assign_ops.append(tf.assign(new_var, old_var))
+                print(new_var.name, '<==', old_var.name)
+
+
+
+        sess.run([assign_ops])
+        ###########################################################################
     
     # saver object to save checkpoint during training
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=10)
