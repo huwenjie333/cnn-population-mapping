@@ -1,6 +1,6 @@
 # cnn-population-mapping
 
-In this project, we aim to predict the population density of rural villages of India from satellite imageries by utilizing Convolutional Neural Network (CNN) models. With the availability of high-frequency satellite images, we can predict population density every few days, saving the costs of on-site census surveys and avoiding the inaccuracies caused by the infrequency of census surveys. We demonstrate state-of-the-art prediction performance in villages of all states in India. By using satellite images with 10-30 meter resolution, our best models can predict aggregated village population in one Subdistrict (akin to a US county) with $R^2$ of 0.93, and individual village $\log_2$ population density with $R^2$ of 0.44.
+In this project, we aim to predict the population density of rural villages of India from satellite imageries by utilizing Convolutional Neural Network (CNN) models. With the availability of high-frequency satellite images, we can predict population density every few days, saving the costs of on-site census surveys and avoiding the inaccuracies caused by the infrequency of census surveys. We demonstrate state-of-the-art prediction performance in villages of all states in India. By using satellite images with 10-30 meter resolution, our best models can predict aggregated village population in one Subdistrict (akin to a US county) with R2 of 0.93, and individual village log2 population density with R2 of 0.44.
 
 Since we cannot share the data in this project, the codes in this repository are for reference only. 
 
