@@ -32,6 +32,4 @@ If you use our provided disk images, the VMs will already have a user named dfd.
 Activate the virtual environment for the version of Python you want to work with. For example
 source /home/dfd/env35/bin/activate
 
-### data sources ###
-Downlaod DMSP/OLS nightlights (.tif) : https://ngdc.noaa.gov/eog/dmsp/downloadV4composites.html
-Download Landscan (.tif) : https://earthworks.stanford.edu/?featured=geospatial_data&q=landscan
+

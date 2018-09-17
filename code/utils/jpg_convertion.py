@@ -13,7 +13,6 @@ Wl8 = Hl8 = 150 # Landsat 30m resolution per pixel
 Ws1 = Hs1 = 450 # Sentinel-1 10m resolution per pixel
 
 
-@jit
 def load_tif_from_file(file, crop_width, crop_height):
     img_file = gdal.Open(file)
     width, height = img_file.RasterXSize, img_file.RasterYSize
@@ -27,7 +26,6 @@ def load_tif_from_file(file, crop_width, crop_height):
     
     return img_data
 
-@jit
 def jpg_convert_save(tif_path, crop_width, crop_height):
     jpg_path = re.sub('tif', 'jpg', tif_path)
     jpg_path = re.sub('500x500', str(crop_width)+'x'+str(crop_height), jpg_path)
